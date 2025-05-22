@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件下载</title>
+  <style>
+    body, html {margin:0;padding:0;height:100%;overflow:hidden;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;}
+    #embed-container {position:fixed;top:0;left:0;width:100%;height:100%;z-index:1000;}
+    #loading-overlay {position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(255,255,255,0.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1001;transition:opacity 0.5s ease;}
+    .spinner {width:50px;height:50px;border:3px solid rgba(0,0,0,0.1);border-radius:50%;border-top-color:#3498db;animation:spin 1s ease-in-out infinite;margin-bottom:20px;}
+    .spinner.error {border-top-color:#e74c3c;} /* 红色加载动画 */
+    @keyframes spin {to {transform:rotate(360deg);}}
+    #error-message {display:none;color:red;text-align:center;padding:20px;z-index:1002;}
+    footer { position: absolute;bottom: 0;left: 0;width: 100%;text-align: center;}
+    .loading-messages { text-align: center; max-width: 300px; } /* 新增样式 */
+  </style>
+</head>
+<body>
+  <div id="loading-overlay">
+    <div class="spinner" id="loading-spinner"></div>
+    <div class="loading-messages" id="loading-text-container"> <!-- 修改为容器 -->
+      <p id="loading-text">正在初始化……</p>
+    </div>
+    <footer>
+      <h6>© <span id="year"></span> yuyudifiesh</h6>
+    </footer>
+  </div>
+  <div id="error-message">
+    <h3>无法加载文件</h3>
+    <p>可能由于跨域限制或网络问题导致无法加载内容。</p>
+    <p>请尝试直接访问：<a href="https://share.feijipan.com/s/N4E8pgHS?code=20ka" target="_blank">云盘链接</a></p>
+  </div>
+  <div id="embed-container">
+    <embed id="file-embed" src="https://share.feijipan.com/s/N4E8pgHS?code=20ka" type="text/html" />
+  </div>
+  <script>
+    const embedElement = document.getElementById('file-embed');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const errorMessage = document.getElementById('error-message');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const loadingTextContainer = document.getElementById('loading-text-container'); // 引用新容器
+    let loadingTimer;
+    let checkTimer;
+    let isLoaded = false;
+    let urlVerified = false;
+    const TARGET_DOMAIN = 'feijipan.com';
+
+    // 初始化加载计时器
+    function initLoadingTimer() {
+      loadingTimer = setTimeout(() => {
+        if (isLoaded && urlVerified) {
+          hideLoading();
+        } else {
+          // 10秒后URL未验证或加载未完成，显示错误状态
+          setLoadingError();
+        }
+      }, 10000);
+    }
+
+    // 设置加载错误状态 - 修改为多行文本
+    function setLoadingError() {
+      loadingSpinner.classList.add('error');
+      
+      // 清空容器
+      loadingTextContainer.innerHTML = '';
+      
+      // 添加多行文本
+      const errorMessages = [
+        '安全政策阻止了您的访问',
+        'Error: URL is not allowed'
+      ];
+      
+      errorMessages.forEach(message => {
+        const p = document.createElement('p');
+        p.textContent = message;
+        p.className = 'mb-1';
+        loadingTextContainer.appendChild(p);
+      });
+    }
+
+    // 检查嵌入内容的URL
+    function checkEmbedUrl() {
+      try {
+        // 尝试获取嵌入内容的URL
+        const embedUrl = embedElement.src || '';
+        
+        if (embedUrl.includes(TARGET_DOMAIN)) {
+          urlVerified = true;
+          clearInterval(checkTimer);
+          
+          // 如果加载已完成，立即隐藏加载层
+          if (isLoaded) {
+            // 延迟n秒后隐藏（从验证通过开始计算）
+            setTimeout(hideLoading, 2000);
+          }
+        }
+      } catch (e) {
+        console.error('检查URL时出错:', e);
+      }
+    }
+
+    embedElement.onload = () => {
+      isLoaded = true;
+      checkEmbedUrl(); // 加载完成后立即检查URL
+      
+      // 如果URL已验证，开始10秒倒计时
+      if (urlVerified) {
+        setTimeout(hideLoading, 10000);
+      }
+    };
+
+    embedElement.onerror = () => {
+      clearTimeout(loadingTimer);
+      clearInterval(checkTimer);
+      hideLoading();
+      showError();
+    };
+
+    function hideLoading() {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }
+
+    function showError() {
+      errorMessage.style.display = 'block';
+    }
+
+    window.addEventListener('resize', () => {
+      embedElement.style.width = '100%';
+      embedElement.style.height = '100%';
+    });
+
+    embedElement.style.width = '100%';
+    embedElement.style.height = '100%';
+    initLoadingTimer();
+    
+    // 定期检查URL（以防onload事件未触发）
+    checkTimer = setInterval(checkEmbedUrl, 1000);
+    
+    // 设置年份
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

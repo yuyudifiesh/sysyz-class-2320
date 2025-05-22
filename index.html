@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加载更新</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2775b6',
+            warning: '#ffc107',      // 503黄色
+            danger: '#e53e3e',
+            dangerDark: '#c53030',
+            error: '#4b5563',       // 500深灰色
+            badRequest: '#f97316',  // 400橙色
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .animate-pulse-slow {
+        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .spin-slow {
+        animation: spin 3s linear infinite;
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      .progress-smooth {
+        transition: width 0.3s ease-in-out; /* 平滑过渡效果 */
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center font-inter">
+  <div class="max-w-md w-full p-6 md:p-8 bg-white rounded-2xl shadow-xl transition-all duration-500">
+    <!-- 加载状态显示 -->
+    <div id="loading-container" class="text-center">
+      <div id="loader" class="w-32 h-32 mx-auto border-8 border-gray-100 border-t-primary rounded-full animate-spin"></div>
+      <h2 id="loading-title" class="mt-6 text-2xl font-bold text-primary">加载中</h2>
+      <p id="loading-message" class="mt-2 text-gray-600">请稍候，我们正在准备内容...</p>
+      
+      <!-- 进度条 -->
+      <div class="mt-8 w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+        <div id="progress-bar" class="bg-primary h-2.5 rounded-full progress-smooth" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <!-- 503错误状态显示 (默认隐藏) -->
+    <div id="error-503-container" class="text-center hidden">
+      <div class="w-32 h-32 mx-auto flex items-center justify-center">
+        <i class="fa fa-exclamation-triangle text-7xl text-warning animate-pulse-slow"></i>
+      </div>
+      <h2 class="mt-6 text-2xl font-bold text-warning">服务暂时不可用</h2>
+      <p id="error-503-message" class="mt-2 text-gray-600">请稍后再试</p>
+    </div>
+    
+    <!-- 500错误状态显示 (默认隐藏) -->
+    <div id="error-500-container" class="text-center hidden">
+      <div class="w-32 h-32 mx-auto flex items-center justify-center">
+        <i class="fa fa-server text-7xl text-error animate-pulse-slow"></i>
+      </div>
+      <h2 class="mt-6 text-2xl font-bold text-error">服务器内部错误</h2>
+      <p id="error-500-message" class="mt-2 text-gray-600">请联系管理员</p>
+    </div>
+    
+    <!-- 400错误状态显示 (默认隐藏) -->
+    <div id="error-400-container" class="text-center hidden">
+      <div class="w-32 h-32 mx-auto flex items-center justify-center">
+        <i class="fa fa-exclamation-circle text-7xl text-badRequest animate-pulse-slow"></i>
+      </div>
+      <h2 class="mt-6 text-2xl font-bold text-badRequest">请求错误</h2>
+      <p id="error-400-message" class="mt-2 text-gray-600">无效请求，请检查</p>
+    </div>
+    
+    <!-- JSON加载失败状态 (默认隐藏) -->
+    <div id="json-error-container" class="text-center hidden">
+      <div class="w-32 h-32 mx-auto flex items-center justify-center">
+        <i class="fa fa-exclamation-circle text-7xl text-danger animate-pulse-slow"></i>
+      </div>
+      <h2 class="mt-6 text-2xl font-bold text-danger">服务出错</h2>
+      <div class="mt-8 w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+        <div id="error-progress-bar" class="bg-danger h-2.5 rounded-full progress-smooth" style="width: 100%"></div>
+      </div>
+    </div>
+  </div>
+  
+  <footer class="mt-8 text-center text-gray-500 text-sm">
+    <p>© 2025 加载动画演示</p>
+  </footer>
+
+  <!-- 引用外部JS文件 -->
+  <script src="./status.js"></script>
+  <script>
+    // 元素引用
+    const progressBar = document.getElementById('progress-bar');
+    const loadingMessage = document.getElementById('loading-message');
+    const loadingContainer = document.getElementById('loading-container');
+    const error503Container = document.getElementById('error-503-container');
+    const error500Container = document.getElementById('error-500-container');
+    const error400Container = document.getElementById('error-400-container');
+    const error503Message = document.getElementById('error-503-message');
+    const error500Message = document.getElementById('error-500-message');
+    const error400Message = document.getElementById('error-400-message');
+    const jsonErrorContainer = document.getElementById('json-error-container');
+    
+    let progress = 0;
+    let isError = false;
+    
+    // 平滑更新进度条
+    function updateProgress() {
+      if (isError || progress >= 100) return;
+      
+      // 计算目标进度
+      let targetProgress = progress;
+      if (statusConfig.code === 503) {
+        targetProgress += 2;
+      } else {
+        targetProgress += Math.random() * 5;
+      }
+      
+      // 限制最大进度
+      if (targetProgress > 95) {
+        targetProgress = 95;
+      }
+      
+      // 使用requestAnimationFrame实现平滑动画
+      animateProgress(progress, targetProgress);
+      
+      // 检查是否需要显示503错误
+      if (statusConfig.code === 503 && targetProgress >= 80) {
+        progress = 80;
+        showErrorState(503);
+        return;
+      }
+      
+      // 更新当前进度
+      progress = targetProgress;
+      
+      // 继续更新
+      setTimeout(updateProgress, 300);
+    }
+    
+    // 平滑动画函数
+    function animateProgress(start, end) {
+      const duration = 300; // 动画持续时间（毫秒）
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        const progressRatio = Math.min(elapsedTime / duration, 1);
+        
+        // 使用缓动函数使动画更自然
+        const easeOutQuad = progressRatio * (2 - progressRatio);
+        const currentProgress = start + (end - start) * easeOutQuad;
+        
+        // 更新进度条
+        progressBar.style.width = `${currentProgress}%`;
+        
+        // 继续动画
+        if (progressRatio < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+    
+    // 显示错误状态
+    function showErrorState(errorCode) {
+      isError = true;
+      loadingContainer.classList.add('hidden');
+      
+      // 隐藏所有错误容器
+      error503Container.classList.add('hidden');
+      error500Container.classList.add('hidden');
+      error400Container.classList.add('hidden');
+      jsonErrorContainer.classList.add('hidden');
+      
+      // 显示对应错误容器
+      const containerMap = {
+        503: error503Container,
+        500: error500Container,
+        400: error400Container,
+      };
+      
+      const messageMap = {
+        503: error503Message,
+        500: error500Message,
+        400: error400Message,
+      };
+      
+      if (containerMap[errorCode]) {
+        containerMap[errorCode].classList.remove('hidden');
+        containerMap[errorCode].classList.add('fade-in');
+        
+        // 更新错误消息
+        if (statusConfig.message) {
+          messageMap[errorCode].textContent = statusConfig.message;
+        }
+      } else {
+        // 默认显示JSON错误
+        jsonErrorContainer.classList.remove('hidden');
+        jsonErrorContainer.classList.add('fade-in');
+      }
+    }
+    
+    // 完成加载并跳转
+    function completeLoading() {
+      if (statusConfig.code === 200 && statusConfig.link) {
+        loadingMessage.textContent = '加载完成，正在跳转...';
+        
+        setTimeout(() => {
+          window.location.href = statusConfig.link;
+        }, 1000);
+      } else {
+        // 平滑填充进度条到100%
+        animateProgress(progress, 100);
+      }
+    }
+    
+    // 检查状态并显示
+    function checkStatus() {
+      // 显示加载消息
+      if (statusConfig.message) {
+        loadingMessage.textContent = statusConfig.message;
+      }
+      
+      // 根据状态码执行相应操作
+      if (statusConfig.code === 200) {
+        updateProgress();
+        
+        const checkComplete = setInterval(() => {
+          if (progress >= 95) {
+            clearInterval(checkComplete);
+            completeLoading();
+          }
+        }, 300);
+      } else if ([503, 500, 400].includes(statusConfig.code)) {
+        // 直接显示对应错误状态
+        showErrorState(statusConfig.code);
+      } else {
+        // 未知状态码
+        showErrorState();
+      }
+    }
+    
+    // 页面加载完成后检查状态
+    document.addEventListener('DOMContentLoaded', checkStatus);
+  </script>
+</body>
+</html>
