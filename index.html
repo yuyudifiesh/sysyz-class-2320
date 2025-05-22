@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>加载更新</title>
+  <title>课件下载</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
   <script>
@@ -55,7 +55,7 @@
     <div id="loading-container" class="text-center">
       <div id="loader" class="w-32 h-32 mx-auto border-8 border-gray-100 border-t-primary rounded-full animate-spin"></div>
       <h2 id="loading-title" class="mt-6 text-2xl font-bold text-primary">加载中</h2>
-      <p id="loading-message" class="mt-2 text-gray-600">请稍候，我们正在准备内容...</p>
+      <p id="loading-message" class="mt-2 text-gray-600">正在请求服务，请稍后……</p>
       
       <!-- 进度条 -->
       <div class="mt-8 w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -103,7 +103,7 @@
   </div>
   
   <footer class="mt-8 text-center text-gray-500 text-sm">
-    <p>© 2025 加载动画演示</p>
+    <p>© <span id="year"></span> yuyudifiesh</p>
   </footer>
 
   <!-- 引用外部JS文件 -->
@@ -264,6 +264,8 @@
     
     // 页面加载完成后检查状态
     document.addEventListener('DOMContentLoaded', checkStatus);
+
+    document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
