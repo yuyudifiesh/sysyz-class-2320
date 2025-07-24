@@ -27,7 +27,7 @@
     </footer>
   </div>
   <div id="error-message">
-    <h3>无法加载文件</h3>
+    <h3>定向失败</h3>
     <p>可能由于跨域限制或网络问题导致无法加载内容。</p>
   </div>
   <div id="embed-container">
@@ -43,7 +43,7 @@
     let checkTimer;
     let isLoaded = false;
     let urlVerified = false;
-    const TARGET_DOMAIN = 'feijipan.com';
+    const TARGET_DOMAIN = 'feijipn.com';
 
     // 初始化加载计时器
     function initLoadingTimer() {
@@ -66,8 +66,8 @@
       
       // 添加多行文本
       const errorMessages = [
-        '安全政策阻止了您的访问',
-        'Error: URL is not allowed'
+        '建立与 feijipan.com 安全连接时出错',
+        '📱--✅--🌐--❌--🔁'
       ];
       
       errorMessages.forEach(message => {
